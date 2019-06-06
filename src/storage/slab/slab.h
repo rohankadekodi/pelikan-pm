@@ -5,6 +5,7 @@
 #include "slabclass.h"
 
 #include <cc_define.h>
+#include <cc_itt.h>
 #include <cc_metric.h>
 #include <cc_option.h>
 #include <cc_util.h>
@@ -144,6 +145,8 @@ TAILQ_HEAD(slab_tqh, slab);
 extern struct hash_table *hash_table;
 extern size_t slab_size;
 extern slab_metrics_st *slab_metrics;
+extern cc_declare_itt_function(slab_malloc);
+extern cc_declare_itt_function(slab_free);
 
 /*
  * Return the usable space for item sized chunks that would be carved out

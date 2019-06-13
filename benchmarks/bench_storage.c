@@ -54,7 +54,6 @@ struct benchmark_options {
 };
 
 struct benchmark {
-    FILE *config;
     struct benchmark_entry *entries;
     struct benchmark_options *options;
 
@@ -82,13 +81,13 @@ benchmark_create(struct benchmark *b, const char *config)
     bench_storage_config_init(b->options->engine);
 
     if (config != NULL) {
-        b->config = fopen(config, "r");
-        if (b->config == NULL) {
+        FILE *fp = fopen(config, "r");
+        if (fp == NULL) {
             log_crit("failed to open the config file");
             return CC_EINVAL;
         }
-        option_load_file(b->config, (struct option *)b->options, nopts);
-        fclose(b->config);
+        option_load_file(fp, (struct option *)b->options, nopts);
+        fclose(fp);
     }
 
     if (O(b, entry_min_size) <= sizeof(benchmark_key_u)) {

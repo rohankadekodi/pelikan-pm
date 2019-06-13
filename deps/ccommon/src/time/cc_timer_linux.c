@@ -105,6 +105,7 @@ duration_snapshot(struct duration *s, const struct duration *d)
 
     s->started = true;
     s->start = d->start;
+    s->type = d->type;
     s->stopped = true;
     _gettime(&s->stop, s->type);
 }

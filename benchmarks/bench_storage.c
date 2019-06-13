@@ -69,7 +69,7 @@ benchmark_create(struct benchmark *b, const char *config)
 {
     b->entries = NULL;
 
-    size_t nopts = OPTION_CARDINALITY(struct benchmark_specific);
+    unsigned nopts = OPTION_CARDINALITY(struct benchmark_specific);
 
     struct benchmark_specific opts = { BENCHMARK_OPTION(OPTION_INIT) };
     option_load_default((struct option *)&opts, nopts);
@@ -98,12 +98,10 @@ benchmark_create(struct benchmark *b, const char *config)
         return CC_EINVAL;
     }
 
-    if (O_BOOL(b, latency)) {
-        for (int op = 0; op < MAX_BENCHMARK_OPERATION; ++op) {
-            b->latency[op].samples =
-                cc_alloc(O(b, nops) * sizeof(struct duration));
-            b->latency[op].count = 0;
-        }
+    for (int op = 0; op < MAX_BENCHMARK_OPERATION; ++op) {
+        b->latency[op].samples = O_BOOL(b, latency) ?
+            cc_alloc(O(b, nops) * sizeof(struct duration)) : NULL;
+        b->latency[op].count = 0;
     }
 
     return CC_OK;
@@ -204,7 +202,7 @@ benchmark_run_operation(struct benchmark *b,
     size_t nsample = latency->count++;
 
     if (O_BOOL(b, latency))
-        duration_start(&latency->samples[nsample]);
+        duration_start_type(&latency->samples[nsample], DURATION_FAST);
 
     switch (op) {
         case BENCHMARK_GET:

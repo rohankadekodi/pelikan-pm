@@ -5,7 +5,7 @@
 
 static cuckoo_metrics_st metrics = { CUCKOO_METRIC(METRIC_INIT) };
 
-size_t
+unsigned
 bench_storage_config_nopts(void)
 {
     return OPTION_CARDINALITY(cuckoo_options_st);

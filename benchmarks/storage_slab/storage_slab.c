@@ -5,7 +5,7 @@
 
 static slab_metrics_st metrics = { SLAB_METRIC(METRIC_INIT) };
 
-size_t
+unsigned
 bench_storage_config_nopts(void)
 {
     return OPTION_CARDINALITY(slab_options_st);

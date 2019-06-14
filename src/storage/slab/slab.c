@@ -178,8 +178,11 @@ _slab_recreate_items(struct slab *slab)
             INCR(slab_metrics, item_alloc);
             PERSLAB_INCR(slab->id, item_curr);
             item_relink(it);
-            p->nfree_item--;
-            p->next_item_in_slab = (struct item *)((char *)p->next_item_in_slab + p->size);
+            if (--p->nfree_item != 0) {
+                p->next_item_in_slab = (struct item *)((char *)p->next_item_in_slab + p->size);
+            } else {
+                p->next_item_in_slab = NULL;
+            }
         } else if (it->in_freeq) {
             _slab_put_item_into_freeq(it, slab->id);
         }
@@ -204,15 +207,15 @@ _slab_table_update(struct slab *slab)
  * and all addresses must be updated
  */
 static void
-_slab_lruq_rebuild(char *heap_start)
+_slab_lruq_rebuild(uint8_t *heap_start)
 {
     struct slab_pool_metadata heap_metadata;
 
     datapool_get_user_data(pool_slab, &heap_metadata, sizeof(struct slab_pool_metadata));
 
-    ptrdiff_t offset = heap_start - (char *)heap_metadata.usr_pool_addr;
+    ptrdiff_t offset = heap_start - (uint8_t *)heap_metadata.usr_pool_addr;
 
-    struct slab *slab = (void *)((char *)heap_metadata.slab_lruq_head + offset);
+    struct slab *slab = (void *)((uint8_t *)heap_metadata.slab_lruq_head + offset);
 
     TAILQ_REINIT(&heapinfo.slab_lruq, slab, s_tqe, offset);
 }
@@ -224,8 +227,7 @@ static void
 _slab_recovery(void)
 {
     uint32_t i;
-
-    char *heap_start = datapool_addr(pool_slab);
+    uint8_t *heap_start = heapinfo.curr;
 
     _slab_lruq_rebuild(heap_start);
     for (i = 0; i < heapinfo.max_nslab; i++) {
@@ -237,6 +239,7 @@ _slab_recovery(void)
             PERSLAB_INCR(slab->id, slab_curr);
             INCR_N(slab_metrics, slab_memory, slab_size);
             _slab_recreate_items(slab);
+            heapinfo.curr += slab_size;
         }
         heap_start += slab_size;
     }

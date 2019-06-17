@@ -91,6 +91,20 @@ test_assert_reserve_backfill_link_exists(struct item *it)
     ck_assert_msg(len == 0, "item_data contains wrong value %.*s", (1000 * KiB), item_data(it));
 }
 
+static void
+test_assert_reserve_backfill_not_linked(struct item *it, size_t pattern_len)
+{
+    size_t len;
+    char *p;
+
+    ck_assert_msg(!it->is_linked, "item linked by mistake");
+    ck_assert_int_eq(it->vlen, (1000 * KiB));
+    for (p = item_data(it) + it->vlen - pattern_len, len = pattern_len;
+            len > 0 && *p == 'B'; p++, len--);
+    ck_assert_msg(len == 0, "item_data contains wrong value %.*s", pattern_len,
+            item_data(it) + it->vlen - pattern_len);
+}
+
 /**
  * Tests basic functionality for item_insert with small key/val. Checks that the
  * commands succeed and that the item returned is well-formed.
@@ -177,6 +191,67 @@ START_TEST(test_insert_large)
 }
 END_TEST
 
+/**
+ * Tests item_reserve, item_backfill and item_release
+ */
+START_TEST(test_reserve_backfill_release)
+{
+#define KEY "key"
+#define VLEN (1000 * KiB)
+
+    struct bstring key, val;
+    item_rstatus_e status;
+    struct item *it;
+    uint32_t vlen;
+    size_t len;
+    char *p;
+
+    test_reset(1);
+
+    key = str2bstr(KEY);
+
+    vlen = VLEN;
+    val.len = vlen / 2 - 3;
+    val.data = cc_alloc(val.len);
+    cc_memset(val.data, 'A', val.len);
+
+    /* reserve */
+    status = item_reserve(&it, &key, &val, vlen, 0, INT32_MAX);
+    free(val.data);
+    ck_assert_msg(status == ITEM_OK, "item_reserve not OK - return status %d",
+            status);
+
+    ck_assert_msg(it != NULL, "item_reserve returned NULL object");
+    ck_assert_msg(!it->is_linked, "item linked by mistake");
+    ck_assert_msg(!it->in_freeq, "linked item with key %.*s in freeq", key.len,
+            key.data);
+    ck_assert_msg(!it->is_raligned, "item with key %.*s is raligned", key.len,
+            key.data);
+    ck_assert_int_eq(it->klen, sizeof(KEY) - 1);
+    ck_assert_int_eq(it->vlen, val.len);
+    for (p = item_data(it), len = it->vlen; len > 0 && *p == 'A'; p++, len--);
+    ck_assert_msg(len == 0, "item_data contains wrong value %.*s", it->vlen,
+            item_data(it));
+
+    /* backfill */
+    val.len = vlen - val.len;
+    val.data = cc_alloc(val.len);
+    cc_memset(val.data, 'B', val.len);
+    item_backfill(it, &val);
+    free(val.data);
+
+    test_assert_reserve_backfill_not_linked(it, val.len);
+
+    test_reset(0);
+
+    test_assert_reserve_backfill_not_linked(it, val.len);
+
+    /* release */
+    item_release(&it);
+#undef VLEN
+#undef KEY
+}
+END_TEST
 
 START_TEST(test_reserve_backfill_link)
 {
@@ -320,6 +395,7 @@ slab_suite(void)
 
     tcase_add_test(tc_item, test_insert_basic);
     tcase_add_test(tc_item, test_insert_large);
+    tcase_add_test(tc_item, test_reserve_backfill_release);
     tcase_add_test(tc_item, test_reserve_backfill_link);
     tcase_add_test(tc_item, test_append_basic);
     tcase_add_test(tc_item, test_prepend_basic);

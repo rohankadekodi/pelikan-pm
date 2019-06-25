@@ -118,6 +118,17 @@ test_assert_annex_sequence_exists(struct bstring key, uint32_t len, const char *
     ck_assert_int_eq(cc_memcmp(item_data(it), literal, len), 0);
 }
 
+static void
+test_assert_expire_exists(struct bstring key, proc_time_i sec)
+{
+    struct item *it = item_get(&key);
+    ck_assert_msg(it != NULL, "item_get on unexpired item not successful");
+
+    proc_sec += sec;
+    it = item_get(&key);
+    ck_assert_msg(it == NULL, "item_get returned not NULL after expiration");
+}
+
 /**
  * Tests basic functionality for item_insert with small key/val. Checks that the
  * commands succeed and that the item returned is well-formed.
@@ -453,6 +464,67 @@ START_TEST(test_annex_sequence)
 }
 END_TEST
 
+START_TEST(test_expire_basic)
+{
+#define KEY "key"
+#define VAL "val"
+#define TIME 12345678
+    struct bstring key, val;
+    item_rstatus_e status;
+    struct item *it;
+
+    test_reset(1);
+
+    key = str2bstr(KEY);
+    val = str2bstr(VAL);
+
+    proc_sec = TIME;
+    status = item_reserve(&it, &key, &val, val.len, 0, TIME + 1);
+    ck_assert_msg(status == ITEM_OK, "item_reserve not OK - return status %d", status);
+    item_insert(it, &key);
+
+    test_reset(0);
+    test_assert_expire_exists(key, 2);
+
+#undef KEY
+#undef VAL
+#undef TIME
+}
+END_TEST
+
+START_TEST(test_expire_truncated)
+{
+#define KEY "key"
+#define VAL "value"
+#define TIME 12345678
+#define TTL_MAX 10
+#define TTL_LONG (TTL_MAX + 5)
+    struct bstring key, val;
+    item_rstatus_e status;
+    struct item *it;
+
+    test_reset(1);
+    max_ttl = TTL_MAX;
+
+    key = str2bstr(KEY);
+    val = str2bstr(VAL);
+
+    proc_sec = TIME;
+    status = item_reserve(&it, &key, &val, val.len, 0, TIME + TTL_LONG);
+    ck_assert_msg(status == ITEM_OK, "item_reserve not OK - return status %d", status);
+    item_insert(it, &key);
+
+    test_reset(0);
+    test_assert_expire_exists(key, (TTL_MAX + 2));
+
+#undef KEY
+#undef VAL
+#undef TIME
+#undef TTL_MAX
+#undef TTL_LONG
+}
+END_TEST
+
 /*
  * test suite
  */
@@ -472,6 +544,8 @@ slab_suite(void)
     tcase_add_test(tc_item, test_append_basic);
     tcase_add_test(tc_item, test_prepend_basic);
     tcase_add_test(tc_item, test_annex_sequence);
+    tcase_add_test(tc_item, test_expire_basic);
+    tcase_add_test(tc_item, test_expire_truncated);
 
     return s;
 }

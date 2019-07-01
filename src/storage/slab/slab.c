@@ -174,10 +174,10 @@ _slab_recreate_items(struct slab *slab)
 
     p = &slabclass[slab->id];
     p->nfree_item = p->nitem;
-    p->next_item_in_slab = (struct item *)&slab->data[0];
     for (i = 0; i < p->nitem; i++) {
         it = _slab_to_item(slab, i, p->size);
         if (it->is_linked) {
+            p->next_item_in_slab = (struct item *)&slab->data[0];
             INCR(slab_metrics, item_curr);
             INCR(slab_metrics, item_alloc);
             PERSLAB_INCR(slab->id, item_curr);
@@ -211,7 +211,7 @@ _slab_table_update(struct slab *slab)
  * and all addresses must be updated
  */
 static void
-_slab_lruq_rebuild(uint8_t *heap_start)
+_slab_lruq_rebuild(const uint8_t *heap_start)
 {
     struct slab_pool_metadata heap_metadata;
 

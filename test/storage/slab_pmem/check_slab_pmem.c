@@ -700,6 +700,86 @@ START_TEST(test_expire_truncated)
 }
 END_TEST
 
+/**
+ * Tests check lruq state after restart
+ */
+START_TEST(test_lruq_rebuild)
+{
+#define NUM_ITEMS 3
+#define KEY1 "key1"
+#define VLEN1 5
+#define KEY2 "key2"
+#define VLEN2 (1 * KiB)
+#define KEY3 "key3"
+#define VLEN3 (1000 * KiB)
+
+    struct bstring key[NUM_ITEMS] = {
+        str2bstr(KEY1),
+        str2bstr(KEY2),
+        str2bstr(KEY3),
+    };
+    struct bstring val[NUM_ITEMS];
+    struct item *it[NUM_ITEMS];
+    struct slab *slab[NUM_ITEMS+1] = { NULL };
+    item_rstatus_e status;
+
+    test_reset(1);
+
+    val[0].data = cc_alloc(VLEN1);
+    cc_memset(val[0].data, 'A', VLEN1);
+    val[0].len = VLEN1;
+
+    val[1].data = cc_alloc(VLEN2);
+    cc_memset(val[1].data, 'B', VLEN2);
+    val[1].len = VLEN2;
+
+    val[2].data = cc_alloc(VLEN3);
+    cc_memset(val[2].data, 'C', VLEN3);
+    val[2].len = VLEN3;
+
+    time_update();
+
+    for (int i = 0; i < NUM_ITEMS; ++i) {
+        status = item_reserve(&it[i], &key[i], &val[i], val[i].len, 0, INT32_MAX);
+        free(val[i].data);
+        ck_assert_msg(status == ITEM_OK, "item_reserve not OK - return status %d", status);
+        item_insert(it[i], &key[i]);
+    }
+
+    for (int i = 0; i < NUM_ITEMS; ++i) {
+        struct item *it_temp  = item_get(&key[i]);
+        ck_assert_msg(it_temp != NULL, "item_get could not find key %.*s", key[i].len, key[i].data);
+        slab[i] = item_to_slab(it_temp);
+    }
+
+    for (int i = 0; i < NUM_ITEMS; ++i) {
+        ck_assert_ptr_eq(TAILQ_NEXT(slab[i], s_tqe), slab[i+1]);
+        ck_assert_ptr_eq(*(slab[i]->s_tqe.tqe_prev), slab[i]);
+    }
+
+    test_reset(0);
+
+    for (int i = 0; i < NUM_ITEMS; ++i) {
+        struct item *it_temp  = item_get(&key[i]);
+        ck_assert_msg(it_temp != NULL, "item_get could not find key %.*s", key[i].len, key[i].data);
+        slab[i] = item_to_slab(it_temp);
+    }
+
+    for (int i = 0; i < NUM_ITEMS; ++i) {
+        ck_assert_ptr_eq(TAILQ_NEXT(slab[i], s_tqe), slab[i+1]);
+        ck_assert_ptr_eq(*(slab[i]->s_tqe.tqe_prev), slab[i]);
+    }
+
+#undef NUM_ITEMS
+#undef KEY1
+#undef VLEN1
+#undef KEY2
+#undef VLEN2
+#undef KEY3
+#undef VLEN3
+}
+END_TEST
+
 START_TEST(test_evict_lru_basic)
 {
 #define MY_SLAB_SIZE 160
@@ -845,6 +925,7 @@ slab_suite(void)
 
     TCase *tc_slab = tcase_create("slab api");
     suite_add_tcase(s, tc_slab);
+    tcase_add_test(tc_slab, test_lruq_rebuild);
     tcase_add_test(tc_slab, test_evict_lru_basic);
     tcase_add_test(tc_slab, test_refcount);
 

@@ -211,7 +211,7 @@ _slab_table_update(struct slab *slab)
  * and all addresses must be updated
  */
 static void
-_slab_lruq_rebuild(uint8_t *heap_start)
+_slab_lruq_rebuild(const uint8_t *heap_start)
 {
     struct slab_pool_metadata heap_metadata;
 

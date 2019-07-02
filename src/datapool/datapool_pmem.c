@@ -120,7 +120,7 @@ datapool_valid(struct datapool *pool)
 }
 
 static void
-datapool_initialize(struct datapool *pool, const char* user_name)
+datapool_initialize(struct datapool *pool, const char *user_name)
 {
     log_info("initializing fresh datapool");
 
@@ -163,7 +163,7 @@ datapool_flag_clear(struct datapool *pool, int flag)
  * finish successfully.
  */
 struct datapool *
-datapool_open(const char *path, const char* user_signature, size_t size, int *fresh, bool prefault)
+datapool_open(const char *path, const char *user_signature, size_t size, int *fresh, bool prefault)
 {
     struct datapool *pool = cc_alloc(sizeof(*pool));
     if (pool == NULL) {

@@ -368,7 +368,6 @@ _slab_heapinfo_teardown(void)
 
     datapool_set_user_data(pool_slab, &pool_metadata, sizeof(struct slab_pool_metadata));
     datapool_close(pool_slab);
-    pool_slab = NULL;
 }
 
 static rstatus_i

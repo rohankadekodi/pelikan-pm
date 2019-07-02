@@ -132,7 +132,7 @@ datapool_initialize(struct datapool *pool, const char* user_name)
     pool->hdr->version = DATAPOOL_VERSION;
     pool->hdr->size = pool->mapped_len;
     pool->hdr->flags = 0;
-    cc_memcpy(pool->hdr->user_signature, user_name, strlen(user_name));
+    cc_memcpy(pool->hdr->user_signature, user_name, cc_strlen(user_name));
     datapool_sync_hdr(pool);
 
     /* 3. set the signature */

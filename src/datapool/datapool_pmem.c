@@ -120,7 +120,7 @@ datapool_valid(struct datapool *pool)
 }
 
 static void
-datapool_initialize(struct datapool *pool, const char* user_name)
+datapool_initialize(struct datapool *pool, const char *user_name)
 {
     log_info("initializing fresh datapool");
 
@@ -132,7 +132,7 @@ datapool_initialize(struct datapool *pool, const char* user_name)
     pool->hdr->version = DATAPOOL_VERSION;
     pool->hdr->size = pool->mapped_len;
     pool->hdr->flags = 0;
-    cc_memcpy(pool->hdr->user_signature, user_name, strlen(user_name));
+    cc_memcpy(pool->hdr->user_signature, user_name, cc_strlen(user_name));
     datapool_sync_hdr(pool);
 
     /* 3. set the signature */
@@ -163,7 +163,7 @@ datapool_flag_clear(struct datapool *pool, int flag)
  * finish successfully.
  */
 struct datapool *
-datapool_open(const char *path, const char* user_signature, size_t size, int *fresh, bool prefault)
+datapool_open(const char *path, const char *user_signature, size_t size, int *fresh, bool prefault)
 {
     struct datapool *pool = cc_alloc(sizeof(*pool));
     if (pool == NULL) {

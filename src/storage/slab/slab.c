@@ -217,11 +217,13 @@ _slab_lruq_rebuild(const uint8_t *heap_start)
 
     datapool_get_user_data(pool_slab, &heap_metadata, sizeof(struct slab_pool_metadata));
 
-    ptrdiff_t offset = heap_start - (uint8_t *)heap_metadata.usr_pool_addr;
+    if (heap_metadata.slab_lruq_head) {
+        ptrdiff_t offset = heap_start - (uint8_t *)heap_metadata.usr_pool_addr;
 
-    struct slab *slab = (void *)((uint8_t *)heap_metadata.slab_lruq_head + offset);
+        struct slab *slab = (void *)((uint8_t *)heap_metadata.slab_lruq_head + offset);
 
-    TAILQ_REINIT(&heapinfo.slab_lruq, slab, s_tqe, offset);
+        TAILQ_REINIT(&heapinfo.slab_lruq, slab, s_tqe, offset);
+    }
 }
 
 /*

@@ -969,6 +969,57 @@ START_TEST(test_evict_refcount)
 }
 END_TEST
 
+START_TEST(test_metrics_insert_basic)
+{
+#define KEY "key"
+#define VAL "val"
+#define MLEN 8
+    struct bstring key, val;
+    item_rstatus_e status;
+    struct item *it;
+
+    key = str2bstr(KEY);
+    val = str2bstr(VAL);
+
+    test_reset(1);
+
+    time_update();
+    status = item_reserve(&it, &key, &val, val.len, MLEN, INT32_MAX);
+    ck_assert_msg(status == ITEM_OK, "item_reserve not OK - return status %d",
+            status);
+    ck_assert_msg(it != NULL, "item_reserve with key %.*s reserved NULL item",
+            key.len, key.data);
+    ck_assert_msg(!it->is_linked, "item with key %.*s not linked", key.len,
+            key.data);
+    ck_assert_msg(!it->in_freeq, "linked item with key %.*s in freeq", key.len,
+            key.data);
+    ck_assert_msg(!it->is_raligned, "item with key %.*s is raligned", key.len,
+            key.data);
+    ck_assert_int_eq(it->vlen, sizeof(VAL) - 1);
+    ck_assert_int_eq(it->klen, sizeof(KEY) - 1);
+    ck_assert_int_eq(item_data(it) - (char *)it, offsetof(struct item, end) +
+            item_cas_size() + MLEN + sizeof(KEY) - 1);
+    ck_assert_int_eq(cc_memcmp(item_data(it), VAL, val.len), 0);
+
+    item_insert(it, &key);
+
+    test_assert_insert_basic_entry_exists(key);
+
+    slab_metrics_st copy = metrics;
+
+    metric_reset((struct metric *)&metrics, METRIC_CARDINALITY(metrics));
+    test_reset(0);
+
+    test_assert_metrics((struct metric *)&copy, (struct metric *)&metrics, METRIC_CARDINALITY(metrics));
+
+    test_assert_insert_basic_entry_exists(key);
+
+#undef MLEN
+#undef KEY
+#undef VAL
+}
+END_TEST
+
 START_TEST(test_metrics_reserve_backfill_link)
 {
 #define KEY "key"
@@ -1128,6 +1179,7 @@ slab_suite(void)
 
     TCase *tc_smetrics = tcase_create("slab metrics");
     suite_add_tcase(s, tc_smetrics);
+    tcase_add_test(tc_smetrics, test_metrics_insert_basic);
     tcase_add_test(tc_smetrics, test_metrics_reserve_backfill_link);
     tcase_add_test(tc_smetrics, test_metrics_lruq_rebuild);
 

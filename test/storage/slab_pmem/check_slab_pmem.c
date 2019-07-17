@@ -1020,6 +1020,45 @@ START_TEST(test_metrics_insert_basic)
 }
 END_TEST
 
+START_TEST(test_metrics_insert_large)
+{
+#define KEY "key"
+#define VLEN (1000 * KiB)
+
+    struct bstring key, val;
+    item_rstatus_e status;
+    struct item *it;
+
+    test_reset(1);
+
+    key = str2bstr(KEY);
+
+    val.data = cc_alloc(VLEN);
+    cc_memset(val.data, 'A', VLEN);
+    val.len = VLEN;
+
+    time_update();
+    status = item_reserve(&it, &key, &val, val.len, 0, INT32_MAX);
+    free(val.data);
+    ck_assert_msg(status == ITEM_OK, "item_reserve not OK - return status %d", status);
+    item_insert(it, &key);
+
+    test_assert_insert_large_entry_exists(key);
+
+    slab_metrics_st copy = metrics;
+
+    metric_reset((struct metric *)&metrics, METRIC_CARDINALITY(metrics));
+    test_reset(0);
+
+    test_assert_metrics((struct metric *)&copy, (struct metric *)&metrics, METRIC_CARDINALITY(metrics));
+
+    test_assert_insert_large_entry_exists(key);
+
+#undef VLEN
+#undef KEY
+}
+END_TEST
+
 START_TEST(test_metrics_reserve_backfill_link)
 {
 #define KEY "key"
@@ -1180,6 +1219,7 @@ slab_suite(void)
     TCase *tc_smetrics = tcase_create("slab metrics");
     suite_add_tcase(s, tc_smetrics);
     tcase_add_test(tc_smetrics, test_metrics_insert_basic);
+    tcase_add_test(tc_smetrics, test_metrics_insert_large);
     tcase_add_test(tc_smetrics, test_metrics_reserve_backfill_link);
     tcase_add_test(tc_smetrics, test_metrics_lruq_rebuild);
 

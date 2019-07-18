@@ -63,8 +63,8 @@ static size_t hash_size; /* item_size * max_nitem, computed at setup */
     DECR_N(cuckoo_metrics, item_data_curr, item_datalen(it));               \
 } while(0)
 
-static cc_declare_itt_function(cuckoo_malloc);
-static cc_declare_itt_function(cuckoo_free);
+cc_declare_itt_function(static, cuckoo_malloc);
+cc_declare_itt_function(static, cuckoo_free);
 
 static inline uint32_t vlen(struct val *val)
 {

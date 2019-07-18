@@ -61,8 +61,8 @@ delta_time_i max_ttl = ITEM_MAX_TTL;
 static bool slab_init = false;
 slab_metrics_st *slab_metrics = NULL;
 
-cc_declare_itt_function(slab_malloc);
-cc_declare_itt_function(slab_free);
+cc_declare_itt_function(,slab_malloc);
+cc_declare_itt_function(,slab_free);
 
 void
 slab_print(void)

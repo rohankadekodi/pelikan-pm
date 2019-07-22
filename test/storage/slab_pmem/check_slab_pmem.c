@@ -15,7 +15,7 @@
 #define DEBUG_LOG  SUITE_NAME ".log"
 #define DATAPOOL_PATH "./slab_datapool.pelikan"
 #define METRIC_STAT_FMT "STATS %s %s"
-#define METRIC_BUF_LEN 100
+#define METRIC_BUF_LEN 35
 
 slab_options_st options = { SLAB_OPTION(OPTION_INIT) };
 slab_metrics_st metrics = { SLAB_METRIC(METRIC_INIT) };
@@ -145,21 +145,32 @@ test_assert_update_basic_entry_exists(struct bstring key)
 }
 
 static void
-test_assert_metrics(struct metric m1[], struct metric m2[], unsigned int nmetric)
+test_assert_metrics(struct metric m1[], struct metric m2[], const unsigned int nmetric)
 {
-    char m1_buf[METRIC_BUF_LEN];
-    char m2_buf[METRIC_BUF_LEN];
+    char diff1_buf[METRIC_BUF_LEN * nmetric];
+    char diff2_buf[METRIC_BUF_LEN * nmetric];
+    char metric1_buf[METRIC_BUF_LEN];
+    char metric2_buf[METRIC_BUF_LEN];
+
+    cc_memset(diff1_buf, 0, sizeof(diff1_buf));
+    cc_memset(diff2_buf, 0, sizeof(diff2_buf));
 
     unsigned i;
     for (i = 0; i < nmetric; i++) {
-        cc_memset(m1_buf, 0, sizeof(m1_buf));
-        cc_memset(m2_buf, 0, sizeof(m2_buf));
+        cc_memset(metric1_buf, 0, sizeof(metric1_buf));
+        metric_print(metric1_buf, METRIC_BUF_LEN, METRIC_STAT_FMT, &m1[i]);
+        strcat(metric1_buf, "\n");
 
-        metric_print(m1_buf, METRIC_BUF_LEN, METRIC_STAT_FMT, &m1[i]);
-        metric_print(m2_buf, METRIC_BUF_LEN, METRIC_STAT_FMT, &m2[i]);
+        cc_memset(metric2_buf, 0, sizeof(metric2_buf));
+        metric_print(metric2_buf, METRIC_BUF_LEN, METRIC_STAT_FMT, &m2[i]);
+        strcat(metric2_buf, "\n");
 
-        ck_assert_str_eq(m1_buf, m2_buf);
+        if(strcmp(metric1_buf, metric2_buf)){
+            strcat(diff1_buf, metric1_buf);
+            strcat(diff2_buf, metric2_buf);
+        }
     }
+    ck_assert_str_eq(diff1_buf, diff2_buf);
 }
 
 /**

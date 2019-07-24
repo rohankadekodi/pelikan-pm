@@ -52,6 +52,7 @@ static void
 test_assert_insert_basic_entry_exists(struct bstring key)
 {
     struct item *it = item_get(&key);
+
     ck_assert_msg(it != NULL, "item_get could not find key %.*s", key.len, key.data);
     ck_assert_msg(it->is_linked, "item with key %.*s not linked", key.len, key.data);
     ck_assert_msg(!it->in_freeq, "linked item with key %.*s in freeq", key.len, key.data);
@@ -68,6 +69,7 @@ test_assert_insert_large_entry_exists(struct bstring key)
     size_t len;
     char *p;
     struct item *it  = item_get(&key);
+
     ck_assert_msg(it != NULL, "item_get could not find key %.*s", key.len, key.data);
     ck_assert_msg(it->is_linked, "item with key %.*s not linked", key.len, key.data);
     ck_assert_msg(!it->in_freeq, "linked item with key %.*s in freeq", key.len, key.data);
@@ -81,10 +83,11 @@ test_assert_insert_large_entry_exists(struct bstring key)
 }
 
 static void
-test_assert_reserve_backfill_link_exists(struct item *it)
+test_assert_reserve_backfill_link_exists(struct bstring key)
 {
     size_t len;
     char *p;
+    struct item *it  = item_get(&key);
 
     ck_assert_msg(it->is_linked, "completely backfilled item not linked");
     ck_assert_int_eq(it->vlen, (1000 * KiB));
@@ -111,6 +114,7 @@ static void
 test_assert_annex_sequence_exists(struct bstring key, uint32_t len, const char *literal, bool realigned)
 {
     struct item *it = item_get(&key);
+
     ck_assert_msg(it != NULL, "item_get could not find key %.*s", key.len, key.data);
     ck_assert_msg(it->is_linked, "item with key %.*s not linked", key.len, key.data);
     ck_assert_msg(!it->in_freeq, "linked item with key %.*s in freeq", key.len, key.data);
@@ -135,6 +139,7 @@ static void
 test_assert_update_basic_entry_exists(struct bstring key)
 {
     struct item *it = item_get(&key);
+
     ck_assert_msg(it != NULL, "item_get could not find key %.*s", key.len, key.data);
     ck_assert_msg(it->is_linked, "item with key %.*s not linked", key.len, key.data);
     ck_assert_msg(!it->in_freeq, "linked item with key %.*s in freeq", key.len, key.data);
@@ -337,11 +342,11 @@ START_TEST(test_reserve_backfill_link)
     val.len = 0;
     item_backfill(it, &val);
     item_insert(it, &key);
-    test_assert_reserve_backfill_link_exists(it);
+    test_assert_reserve_backfill_link_exists(key);
 
     test_reset(0);
 
-    test_assert_reserve_backfill_link_exists(it);
+    test_assert_reserve_backfill_link_exists(key);
 
 #undef VLEN
 #undef KEY
@@ -1085,7 +1090,7 @@ START_TEST(test_metrics_reserve_backfill_link)
     val.len = 0;
     item_backfill(it, &val);
     item_insert(it, &key);
-    test_assert_reserve_backfill_link_exists(it);
+    test_assert_reserve_backfill_link_exists(key);
 
     slab_metrics_st copy = metrics;
 
@@ -1094,7 +1099,7 @@ START_TEST(test_metrics_reserve_backfill_link)
 
     test_assert_metrics((struct metric *)&copy, (struct metric *)&metrics, METRIC_CARDINALITY(metrics));
 
-    test_assert_reserve_backfill_link_exists(it);
+    test_assert_reserve_backfill_link_exists(key);
 
 #undef VLEN
 #undef KEY

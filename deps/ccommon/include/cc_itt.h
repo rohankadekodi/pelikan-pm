@@ -13,8 +13,8 @@ extern "C" {
 
 #define ITT_DOMAIN_NAME "cc_itt"
 
-#define cc_declare_itt_function(_name)                                           \
-    __itt_heap_function _name
+#define cc_declare_itt_function(_keyword, _name)                                 \
+    _keyword __itt_heap_function _name
 
 #define cc_create_itt_malloc(_name)                                              \
     _name = __itt_heap_function_create(#_name, ITT_DOMAIN_NAME)
@@ -52,7 +52,7 @@ extern "C" {
     __itt_heap_internal_access_end()
 
 #else
-#define cc_declare_itt_function(_name)
+#define cc_declare_itt_function(_keyword, _name)
 #define cc_create_itt_malloc(_name)
 #define cc_create_itt_free(_name)
 #define cc_create_itt_realloc(_name)

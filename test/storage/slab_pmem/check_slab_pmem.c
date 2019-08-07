@@ -9,6 +9,7 @@
 #include <check.h>
 #include <stdio.h>
 #include <string.h>
+#include <sysexits.h>
 
 /* define for each suite, local scope due to macro visibility rule */
 #define SUITE_NAME "slab"
@@ -1199,6 +1200,21 @@ START_TEST(test_metrics_lruq_rebuild)
 }
 END_TEST
 
+
+START_TEST(test_setup_wrong_path)
+{
+#define DATAPOOL_PATH_WRONG "./"
+
+    option_load_default((struct option *)&options, OPTION_CARDINALITY(options));
+    options.slab_datapool.val.vstr = DATAPOOL_PATH_WRONG;
+
+    slab_setup(&options, &metrics);
+
+#undef DATAPOOL_PATH_WRONG
+}
+END_TEST
+
+
 /*
  * test suite
  */
@@ -1231,6 +1247,7 @@ slab_suite(void)
     tcase_add_test(tc_slab, test_evict_lru_basic);
     tcase_add_test(tc_slab, test_refcount);
     tcase_add_test(tc_slab, test_evict_refcount);
+    tcase_add_exit_test(tc_slab, test_setup_wrong_path, EX_CONFIG);
 
     TCase *tc_smetrics = tcase_create("slab metrics");
     suite_add_tcase(s, tc_smetrics);

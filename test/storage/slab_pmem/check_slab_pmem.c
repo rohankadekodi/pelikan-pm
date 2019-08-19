@@ -986,6 +986,19 @@ START_TEST(test_evict_refcount)
 }
 END_TEST
 
+START_TEST(test_setup_wrong_path)
+{
+#define DATAPOOL_PATH_WRONG "./"
+
+    option_load_default((struct option *)&options, OPTION_CARDINALITY(options));
+    options.slab_datapool.val.vstr = DATAPOOL_PATH_WRONG;
+
+    slab_setup(&options, &metrics);
+
+#undef DATAPOOL_PATH_WRONG
+}
+END_TEST
+
 START_TEST(test_metrics_insert_basic)
 {
 #define KEY "key"
@@ -1199,21 +1212,6 @@ START_TEST(test_metrics_lruq_rebuild)
 #undef VLEN3
 }
 END_TEST
-
-
-START_TEST(test_setup_wrong_path)
-{
-#define DATAPOOL_PATH_WRONG "./"
-
-    option_load_default((struct option *)&options, OPTION_CARDINALITY(options));
-    options.slab_datapool.val.vstr = DATAPOOL_PATH_WRONG;
-
-    slab_setup(&options, &metrics);
-
-#undef DATAPOOL_PATH_WRONG
-}
-END_TEST
-
 
 /*
  * test suite

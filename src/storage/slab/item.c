@@ -175,6 +175,15 @@ _item_unlink(struct item *it)
     PERSLAB_DECR_N(it->id, item_val_byte, it->vlen);
 }
 
+static void
+_item_delete(struct item **it)
+{
+    log_verb("delete it %p of id %"PRIu8, *it, (*it)->id);
+
+    _item_unlink(*it);
+    _item_dealloc(it);
+}
+
 /**
  * Return an item if it hasn't been marked as expired, lazily expiring
  * item as-and-when needed
@@ -195,8 +204,7 @@ item_get(const struct bstring *key)
 
     if (_item_expired(it)) {
         log_verb("get it '%.*s' expired and nuked", key->len, key->data);
-        _item_unlink(it);
-        _item_dealloc(&it);
+        _item_delete(&it);
         return NULL;
     }
 
@@ -358,15 +366,6 @@ item_update(struct item *it, const struct bstring *val)
     item_set_cas(it);
 
     log_verb("update it %p of id %"PRIu8, it, it->id);
-}
-
-static void
-_item_delete(struct item **it)
-{
-    log_verb("delete it %p of id %"PRIu8, *it, (*it)->id);
-
-    _item_unlink(*it);
-    _item_dealloc(it);
 }
 
 bool

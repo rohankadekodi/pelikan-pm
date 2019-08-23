@@ -189,9 +189,6 @@ _slab_recreate_items(struct slab *slab)
             }
         } else if (it->in_freeq) {
             _slab_put_item_into_freeq(it, slab->id);
-        } else if (it->klen && it->vlen == 0) {
-           /* item could be only reserved before reset */
-           item_release(&it);
         }
     }
 }

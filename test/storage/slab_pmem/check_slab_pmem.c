@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sysexits.h>
+#include <sys/mman.h>
 
 /* define for each suite, local scope due to macro visibility rule */
 #define SUITE_NAME "slab"
@@ -42,11 +43,45 @@ test_teardown(int un)
         unlink(DATAPOOL_PATH);
 }
 
+static void *
+test_get_pmem_mapping_addr(void)
+{
+    FILE *pf;
+    char command[200];
+    char pmem_addr[20];
+
+    sprintf(command, "cat /proc/%d/maps | grep "SLAB_DATAPOOL_NAME" | cut -d \\- -f 1", getpid());
+    pf = popen(command, "r");
+    fgets(pmem_addr, 20, pf);
+    strtok(pmem_addr, "\n");
+    pclose(pf);
+
+    uintptr_t pmem_mapping_addr = strtoul(pmem_addr, NULL, 16);
+    return (void *)pmem_mapping_addr;
+}
+
 static void
 test_reset(int un)
 {
     test_teardown(un);
     test_setup();
+}
+
+static void
+test_reset_addr_change(int un)
+{
+    void *pmem_addr = test_get_pmem_mapping_addr();
+    uint32_t pagesize = (uint32_t)sysconf(_SC_PAGESIZE);
+
+    test_teardown(un);
+
+    void *rearrange_pool_mapping_addr = mmap(pmem_addr, pagesize, PROT_NONE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+
+    ck_assert_msg(rearrange_pool_mapping_addr == pmem_addr,
+                  "Address mapped is not in range of previous pmem datapool mapping");
+
+    test_setup();
+    munmap(rearrange_pool_mapping_addr, pagesize);
 }
 
 static void
@@ -217,7 +252,7 @@ START_TEST(test_insert_basic)
 
     test_assert_insert_basic_entry_exists(key);
 
-    test_reset(0);
+    test_reset_addr_change(0);
 
     test_assert_insert_basic_entry_exists(key);
 
@@ -256,7 +291,7 @@ START_TEST(test_insert_large)
 
     test_assert_insert_large_entry_exists(key);
 
-    test_reset(0);
+    test_reset_addr_change(0);
 
     test_assert_insert_large_entry_exists(key);
 
@@ -359,7 +394,7 @@ START_TEST(test_reserve_backfill_link)
     item_insert(it, &key);
     test_assert_reserve_backfill_link_exists(key);
 
-    test_reset(0);
+    test_reset_addr_change(0);
 
     test_assert_reserve_backfill_link_exists(key);
 
@@ -397,7 +432,7 @@ START_TEST(test_append_basic)
     status = item_annex(it, &key, &append, true);
     ck_assert_msg(status == ITEM_OK, "item_append not OK - return status %d", status);
 
-    test_reset(0);
+    test_reset_addr_change(0);
 
     it = item_get(&key);
     ck_assert_msg(it != NULL, "item_get could not find key %.*s", key.len, key.data);
@@ -442,7 +477,7 @@ START_TEST(test_prepend_basic)
     status = item_annex(it, &key, &prepend, false);
     ck_assert_msg(status == ITEM_OK, "item_prepend not OK - return status %d", status);
 
-    test_reset(0);
+    test_reset_addr_change(0);
 
     it = item_get(&key);
     ck_assert_msg(it != NULL, "item_get could not find key %.*s", key.len, key.data);
@@ -490,7 +525,7 @@ START_TEST(test_annex_sequence)
     ck_assert_msg(status == ITEM_OK, "item_append not OK - return status %d", status);
 
     test_assert_annex_sequence_exists(key, val.len + append1.len, VAL APPEND1, true);
-    test_reset(0);
+    test_reset_addr_change(0);
     test_assert_annex_sequence_exists(key, val.len + append1.len, VAL APPEND1, true);
 
     it = item_get(&key);
@@ -498,7 +533,7 @@ START_TEST(test_annex_sequence)
     ck_assert_msg(status == ITEM_OK, "item_prepend not OK - return status %d", status);
 
     test_assert_annex_sequence_exists(key, val.len + append1.len + prepend.len, PREPEND VAL APPEND1, false);
-    test_reset(0);
+    test_reset_addr_change(0);
     test_assert_annex_sequence_exists(key, val.len + append1.len + prepend.len, PREPEND VAL APPEND1, false);
 
     it = item_get(&key);
@@ -507,7 +542,7 @@ START_TEST(test_annex_sequence)
 
     test_assert_annex_sequence_exists(key,  val.len + append1.len + prepend.len + append2.len, PREPEND VAL APPEND1 APPEND2, true);
 
-    test_reset(0);
+    test_reset_addr_change(0);
 
     test_assert_annex_sequence_exists(key,  val.len + append1.len + prepend.len + append2.len, PREPEND VAL APPEND1 APPEND2, true);
 
@@ -546,7 +581,7 @@ START_TEST(test_update_basic)
 
     test_assert_update_basic_entry_exists(key);
 
-    test_reset(0);
+    test_reset_addr_change(0);
 
     test_assert_update_basic_entry_exists(key);
 
@@ -696,7 +731,7 @@ START_TEST(test_expire_basic)
     ck_assert_msg(status == ITEM_OK, "item_reserve not OK - return status %d", status);
     item_insert(it, &key);
 
-    test_reset(0);
+    test_reset_addr_change(0);
 
     test_assert_expire_exists(key, 2);
 
@@ -728,7 +763,7 @@ START_TEST(test_expire_truncated)
     ck_assert_msg(status == ITEM_OK, "item_reserve not OK - return status %d", status);
     item_insert(it, &key);
 
-    test_reset(0);
+    test_reset_addr_change(0);
 
     test_assert_expire_exists(key, (TTL_MAX + 2));
 
@@ -834,7 +869,7 @@ START_TEST(test_lruq_rebuild)
         ck_assert_ptr_eq(*(slab[i]->s_tqe.tqe_prev), slab[i]);
     }
 
-    test_reset(0);
+    test_reset_addr_change(0);
 
     for (int i = 0; i < NUM_ITEMS; ++i) {
         struct item *it_temp  = item_get(&key[i]);
@@ -941,7 +976,7 @@ START_TEST(test_refcount)
     struct bstring key, val;
     item_rstatus_e status;
     struct item *it;
-    struct slab * s;
+    struct slab *s;
 
     test_reset(1);
 

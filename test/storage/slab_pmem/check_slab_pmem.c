@@ -228,6 +228,8 @@ START_TEST(test_insert_basic)
     item_rstatus_e status;
     struct item *it;
 
+    test_reset(1);
+
     key = str2bstr(KEY);
     val = str2bstr(VAL);
 

@@ -2,6 +2,7 @@ from base import GenericTest
 from base import GenericPmemTest
 
 import os
+import sys
 import unittest
 import ConfigParser
 import StringIO
@@ -33,5 +34,8 @@ def removeDevice():
         os.remove(devpath)
 
 if __name__ == '__main__':
-    unittest.TextTestRunner(verbosity=2).run(twemcache())
+    result = unittest.TextTestRunner(verbosity=2).run(twemcache())
     removeDevice()
+    if result.wasSuccessful():
+        sys.exit(0)
+    sys.exit(1)

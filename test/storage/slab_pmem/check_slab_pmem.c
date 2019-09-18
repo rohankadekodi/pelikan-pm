@@ -105,7 +105,7 @@ test_assert_insert_large_entry_exists(struct bstring key)
 {
     size_t len;
     char *p;
-    struct item *it  = item_get(&key);
+    struct item *it = item_get(&key);
 
     ck_assert_msg(it != NULL, "item_get could not find key %.*s", key.len, key.data);
     ck_assert_msg(it->is_linked, "item with key %.*s not linked", key.len, key.data);
@@ -124,7 +124,7 @@ test_assert_reserve_backfill_link_exists(struct bstring key)
 {
     size_t len;
     char *p;
-    struct item *it  = item_get(&key);
+    struct item *it = item_get(&key);
 
     ck_assert_msg(it->is_linked, "completely backfilled item not linked");
     ck_assert_int_eq(it->vlen, (1000 * KiB));
@@ -541,11 +541,11 @@ START_TEST(test_annex_sequence)
     status = item_annex(it, &key, &append2, true);
     ck_assert_msg(status == ITEM_OK, "item_append not OK - return status %d", status);
 
-    test_assert_annex_sequence_exists(key,  val.len + append1.len + prepend.len + append2.len, PREPEND VAL APPEND1 APPEND2, true);
+    test_assert_annex_sequence_exists(key, val.len + append1.len + prepend.len + append2.len, PREPEND VAL APPEND1 APPEND2, true);
 
     test_reset_addr_change(0);
 
-    test_assert_annex_sequence_exists(key,  val.len + append1.len + prepend.len + append2.len, PREPEND VAL APPEND1 APPEND2, true);
+    test_assert_annex_sequence_exists(key, val.len + append1.len + prepend.len + append2.len, PREPEND VAL APPEND1 APPEND2, true);
 
 #undef KEY
 #undef VAL
@@ -892,7 +892,7 @@ START_TEST(test_lruq_rebuild)
     }
 
     for (int i = 0; i < NUM_ITEMS; ++i) {
-        struct item *it_temp  = item_get(&key[i]);
+        struct item *it_temp = item_get(&key[i]);
         ck_assert_msg(it_temp != NULL, "item_get could not find key %.*s", key[i].len, key[i].data);
         slab[i] = item_to_slab(it_temp);
     }
@@ -905,7 +905,7 @@ START_TEST(test_lruq_rebuild)
     test_reset_addr_change(0);
 
     for (int i = 0; i < NUM_ITEMS; ++i) {
-        struct item *it_temp  = item_get(&key[i]);
+        struct item *it_temp = item_get(&key[i]);
         ck_assert_msg(it_temp != NULL, "item_get could not find key %.*s", key[i].len, key[i].data);
         slab[i] = item_to_slab(it_temp);
     }
@@ -1495,7 +1495,7 @@ START_TEST(test_metrics_lruq_rebuild)
     }
 
     for (int i = 0; i < NUM_ITEMS; ++i) {
-        struct item *it_temp  = item_get(&key[i]);
+        struct item *it_temp = item_get(&key[i]);
         ck_assert_msg(it_temp != NULL, "item_get could not find key %.*s", key[i].len, key[i].data);
         slab[i] = item_to_slab(it_temp);
     }
@@ -1513,7 +1513,7 @@ START_TEST(test_metrics_lruq_rebuild)
     test_assert_metrics((struct metric *)&copy, (struct metric *)&metrics, METRIC_CARDINALITY(metrics));
 
     for (int i = 0; i < NUM_ITEMS; ++i) {
-        struct item *it_temp  = item_get(&key[i]);
+        struct item *it_temp = item_get(&key[i]);
         ck_assert_msg(it_temp != NULL, "item_get could not find key %.*s", key[i].len, key[i].data);
         slab[i] = item_to_slab(it_temp);
     }

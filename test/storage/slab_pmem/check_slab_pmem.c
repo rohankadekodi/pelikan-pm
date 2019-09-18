@@ -79,7 +79,7 @@ test_reset_addr_change(int un)
     void *rearrange_pool_mapping_addr = mmap(pmem_addr, pagesize, PROT_NONE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
 
     ck_assert_msg(rearrange_pool_mapping_addr == pmem_addr,
-                  "Address mapped is not in range of previous pmem datapool mapping");
+                  "Address mapped is not at the beginning of previous pmem datapool mapping");
 
     test_setup();
     munmap(rearrange_pool_mapping_addr, pagesize);
@@ -105,7 +105,7 @@ test_assert_insert_large_entry_exists(struct bstring key)
 {
     size_t len;
     char *p;
-    struct item *it  = item_get(&key);
+    struct item *it = item_get(&key);
 
     ck_assert_msg(it != NULL, "item_get could not find key %.*s", key.len, key.data);
     ck_assert_msg(it->is_linked, "item with key %.*s not linked", key.len, key.data);
@@ -124,7 +124,7 @@ test_assert_reserve_backfill_link_exists(struct bstring key)
 {
     size_t len;
     char *p;
-    struct item *it  = item_get(&key);
+    struct item *it = item_get(&key);
 
     ck_assert_msg(it->is_linked, "completely backfilled item not linked");
     ck_assert_int_eq(it->vlen, (1000 * KiB));
@@ -541,11 +541,11 @@ START_TEST(test_annex_sequence)
     status = item_annex(it, &key, &append2, true);
     ck_assert_msg(status == ITEM_OK, "item_append not OK - return status %d", status);
 
-    test_assert_annex_sequence_exists(key,  val.len + append1.len + prepend.len + append2.len, PREPEND VAL APPEND1 APPEND2, true);
+    test_assert_annex_sequence_exists(key, val.len + append1.len + prepend.len + append2.len, PREPEND VAL APPEND1 APPEND2, true);
 
     test_reset_addr_change(0);
 
-    test_assert_annex_sequence_exists(key,  val.len + append1.len + prepend.len + append2.len, PREPEND VAL APPEND1 APPEND2, true);
+    test_assert_annex_sequence_exists(key, val.len + append1.len + prepend.len + append2.len, PREPEND VAL APPEND1 APPEND2, true);
 
 #undef KEY
 #undef VAL
@@ -813,6 +813,38 @@ START_TEST(test_freeq)
 }
 END_TEST
 
+START_TEST(test_release_reserved_items_after_restart)
+{
+#define KEY "key"
+#define VAL "val"
+    struct bstring key, val;
+    item_rstatus_e status;
+    struct item *it = NULL;
+    struct slab *s;
+    uint8_t i;
+
+    test_reset(1);
+
+    key = str2bstr(KEY);
+    val = str2bstr(VAL);
+
+    time_update();
+    /* reserve */
+    for (i = 0; i < 3; i++) {
+        status = item_reserve(&it, &key, &val, val.len, 0, INT32_MAX);
+        ck_assert_msg(status == ITEM_OK, "item_reserve not OK - return status %d", status);
+    }
+    s = item_to_slab(it);
+    ck_assert_msg(s->refcount == 3, "slab refcount %"PRIu32"; 3 expected", s->refcount);
+
+    test_reset(0);
+    ck_assert_msg(s->refcount == 0, "slab refcount %"PRIu32"; 0 expected", s->refcount);
+
+#undef KEY
+#undef VAL
+}
+END_TEST
+
 /**
  * Tests check lruq state after restart
  */
@@ -860,7 +892,7 @@ START_TEST(test_lruq_rebuild)
     }
 
     for (int i = 0; i < NUM_ITEMS; ++i) {
-        struct item *it_temp  = item_get(&key[i]);
+        struct item *it_temp = item_get(&key[i]);
         ck_assert_msg(it_temp != NULL, "item_get could not find key %.*s", key[i].len, key[i].data);
         slab[i] = item_to_slab(it_temp);
     }
@@ -873,7 +905,7 @@ START_TEST(test_lruq_rebuild)
     test_reset_addr_change(0);
 
     for (int i = 0; i < NUM_ITEMS; ++i) {
-        struct item *it_temp  = item_get(&key[i]);
+        struct item *it_temp = item_get(&key[i]);
         ck_assert_msg(it_temp != NULL, "item_get could not find key %.*s", key[i].len, key[i].data);
         slab[i] = item_to_slab(it_temp);
     }
@@ -1463,7 +1495,7 @@ START_TEST(test_metrics_lruq_rebuild)
     }
 
     for (int i = 0; i < NUM_ITEMS; ++i) {
-        struct item *it_temp  = item_get(&key[i]);
+        struct item *it_temp = item_get(&key[i]);
         ck_assert_msg(it_temp != NULL, "item_get could not find key %.*s", key[i].len, key[i].data);
         slab[i] = item_to_slab(it_temp);
     }
@@ -1481,7 +1513,7 @@ START_TEST(test_metrics_lruq_rebuild)
     test_assert_metrics((struct metric *)&copy, (struct metric *)&metrics, METRIC_CARDINALITY(metrics));
 
     for (int i = 0; i < NUM_ITEMS; ++i) {
-        struct item *it_temp  = item_get(&key[i]);
+        struct item *it_temp = item_get(&key[i]);
         ck_assert_msg(it_temp != NULL, "item_get could not find key %.*s", key[i].len, key[i].data);
         slab[i] = item_to_slab(it_temp);
     }
@@ -1528,6 +1560,7 @@ slab_suite(void)
     tcase_add_test(tc_item, test_expire_basic);
     tcase_add_test(tc_item, test_expire_truncated);
     tcase_add_test(tc_item, test_freeq);
+    tcase_add_test(tc_item, test_release_reserved_items_after_restart);
 
     TCase *tc_slab = tcase_create("slab api");
     suite_add_tcase(s, tc_slab);

@@ -37,8 +37,8 @@ option(HAVE_LOGGING "logging enabled by default" ON)
 option(HAVE_STATS "stats enabled by default" ON)
 
 option(TARGET_PINGSERVER "build pingserver binary" ON)
-option(TARGET_DS "build dataserver binary" ON)
-option(TARGET_SLIMDS "build slim dataserver binary" ON)
+option(TARGET_RDS "build rich data server binary" ON)
+option(TARGET_SLIMRDS "build slim rich data server binary" ON)
 option(TARGET_SLIMCACHE "build slimcache binary" ON)
 option(TARGET_TWEMCACHE "build twemcache binary" ON)
 option(TARGET_CDB "build cdb binary (implies HAVE_RUST)" OFF)
@@ -114,8 +114,8 @@ if(BUILD_AND_INSTALL_CHECK)
 
     set(CHECK_ROOT_DIR "${LIBCHECK_PREFIX}")
     set(CMAKE_REQUIRED_INCLUDES "${CHECK_ROOT_DIR}/include")    # these make check link correctly in ccommon and pelikan
-    set(CMAKE_REQUIRED_LIBRARIES "${CHECK_ROOT_DIR}/lib")
 endif()
+
 
 if(${OS_PLATFORM} MATCHES "OS_LINUX")
   set(CFLAGS_LIST "${CFLAGS_LIST} -lrt")
@@ -143,10 +143,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 
 find_package(PkgConfig QUIET)
 
-if(NOT CHECK_FOUND)
-    find_package(Check QUIET 0.10)
-endif()
-
 if (USE_PMEM)
     if(PKG_CONFIG_FOUND)
         pkg_check_modules(LIBPMEM REQUIRED libpmem>=1.0)
@@ -166,6 +162,17 @@ if (HAVE_ITT_INSTRUMENTATION)
     link_directories(${ITTNOTIFY_LIBRARY_DIRS})
     link_libraries(${ITTNOTIFY_LIBRARIES})
 endif(HAVE_ITT_INSTRUMENTATION)
+
+find_package(Check)
+if(NOT CHECK_FOUND)
+    message(WARNING "Check is required to build and run tests")
+endif(NOT CHECK_FOUND)
+if(CHECK_FOUND)
+    check_symbol_exists(ck_assert_int_eq check.h CHECK_WORKING)
+    if(NOT CHECK_WORKING)
+        message(WARNING "Check version too old to build tests")
+    endif(NOT CHECK_WORKING)
+endif(CHECK_FOUND)
 
 find_package(Threads)
 
@@ -187,11 +194,14 @@ add_subdirectory(src)
 
 # tests: always build last
 if(CHECK_FOUND)
-    include_directories(${include_directories} ${CHECK_INCLUDES})
+    include_directories(${CHECK_INCLUDES})
+    link_directories(${CHECK_LIBRARY_DIRS})
     add_subdirectory(test)
 endif(CHECK_FOUND)
 
-add_subdirectory(benchmarks)
+if(${OS_PLATFORM} MATCHES "OS_LINUX")
+  add_subdirectory(benchmarks)
+endif()
 
 # print a summary
 

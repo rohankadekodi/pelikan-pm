@@ -22,9 +22,9 @@ static __thread unsigned int rseed = 1234; /* XXX: make this an option */
 } while (0)
 
 #define BENCHMARK_OPTION(ACTION)\
-    ACTION(entry_min_size,  OPTION_TYPE_UINT, 64,    "Min size of cache entry")\
-    ACTION(entry_max_size,  OPTION_TYPE_UINT, 64,    "Max size of cache entry")\
-    ACTION(nentries,        OPTION_TYPE_UINT, 1000,  "Max total number of cache entries" )\
+    ACTION(entry_min_size,  OPTION_TYPE_UINT, 1024,    "Min size of cache entry")\
+    ACTION(entry_max_size,  OPTION_TYPE_UINT, 1024,    "Max size of cache entry")\
+    ACTION(nentries,        OPTION_TYPE_UINT, 5000000,  "Max total number of cache entries" )\
     ACTION(nops,            OPTION_TYPE_UINT, 100000,"Total number of operations")\
     ACTION(pct_get,         OPTION_TYPE_UINT, 80,    "% of gets")\
     ACTION(pct_put,         OPTION_TYPE_UINT, 10,    "% of puts")\
@@ -102,9 +102,9 @@ benchmark_create(struct benchmark *b, const char *config)
     }
 
     for (int op = 0; op < MAX_BENCHMARK_OPERATION; ++op) {
-        b->latency[op].samples = O_BOOL(b, latency) ?
+	    b->latency[op].samples = O_BOOL(b, latency) ?
             cc_alloc(O(b, nops) * sizeof(struct duration)) : NULL;
-        b->latency[op].count = 0;
+	    b->latency[op].count = 0;
     }
 
     return CC_OK;
@@ -236,6 +236,7 @@ benchmark_run(struct benchmark *b)
 
     size_t nentries = O(b, nentries);
 
+    printf("%s: entry_max_size = %lu, nentries = %lu\n", __func__, O(b, entry_max_size), nentries);
     bench_storage_init(b->options->engine, O(b, entry_max_size), nentries);
 
     array_create(&in, nentries, sizeof(struct benchmark_entry *));
@@ -259,8 +260,8 @@ benchmark_run(struct benchmark *b)
         }
 
         unsigned pct = RRAND(0, 100);
-
         unsigned pct_sum = 0;
+
         if (pct_sum <= pct && pct < O(b, pct_get) + pct_sum) {
             ASSERT(array_nelem(in) != 0);
             struct benchmark_entry **e = array_pop(in);
@@ -274,25 +275,26 @@ benchmark_run(struct benchmark *b)
         }
         pct_sum += O(b, pct_get);
         if (pct_sum <= pct && pct < O(b, pct_put) + pct_sum) {
-            struct benchmark_entry **e;
-            if (array_nelem(out) != 0) {
-                e = array_pop(out);
-            } else {
-                ASSERT(array_nelem(in) != 0);
-                e = array_pop(in);
-                if (bench_storage_rem(*e) != CC_OK) {
-                    log_info("benchmark rem() failed");
-                }
-            }
+		struct benchmark_entry **e;
+		if (array_nelem(out) != 0) {
+			e = array_pop(out);
+		} else {
+			ASSERT(array_nelem(in) != 0);
+			e = array_pop(in);
+			if (bench_storage_rem(*e) != CC_OK) {
+				log_info("benchmark rem() failed");
+			}
+		}
 
-            if (benchmark_run_operation(b, *e, BENCHMARK_PUT) != CC_OK) {
-                log_info("benchmark put() failed");
-            }
+		if (benchmark_run_operation(b, *e, BENCHMARK_PUT) != CC_OK) {
+			log_info("benchmark put() failed");
+		}
 
-            struct benchmark_entry **e2 = array_push(in2);
-            *e2 = *e;
-        }
+		struct benchmark_entry **e2 = array_push(in2);
+		*e2 = *e;
+	}
         pct_sum += O(b, pct_put);
+
         if (pct_sum < pct && pct <= O(b, pct_rem) + pct_sum) {
             ASSERT(array_nelem(in) != 0);
             struct benchmark_entry **e = array_pop(in);
@@ -328,7 +330,9 @@ main(int argc, char *argv[])
 
     benchmark_entries_populate(&b);
 
+    printf("%s: running benchmark\n", __func__);
     struct duration d = benchmark_run(&b);
+    printf("%s: benchmark done\n", __func__);
 
     benchmark_print_summary(&b, &d);
 

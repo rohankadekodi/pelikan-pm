@@ -13,7 +13,7 @@
 /* define for each suite, local scope due to macro visibility rule */
 #define SUITE_NAME "cuckoo_pmem"
 #define DEBUG_LOG  SUITE_NAME ".log"
-#define DATAPOOL_PATH "./datapool.pelikan"
+#define DATAPOOL_PATH "/mnt/pmem_emul/datapool.pelikan"
 
 void test_insert_basic(uint32_t policy, bool cas);
 void test_insert_collision(uint32_t policy, bool cas);

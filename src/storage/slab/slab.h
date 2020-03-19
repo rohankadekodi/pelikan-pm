@@ -29,7 +29,7 @@
 #define ITEM_FACTOR     1.25
 #define ITEM_MAX_TTL    (30 * 24 * 60 * 60) /* 30 days */
 #define HASH_POWER      16
-#define SLAB_DATAPOOL   NULL
+#define SLAB_DATAPOOL   "/mnt/pmem_emul/slab_datapool.pelikan"
 #define SLAB_PREFAULT   false
 #define SLAB_DATAPOOL_NAME "slab_datapool"
 

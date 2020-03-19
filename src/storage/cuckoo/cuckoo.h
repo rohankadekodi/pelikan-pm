@@ -13,11 +13,11 @@
 
 #define CUCKOO_DISPLACE 2
 #define CUCKOO_ITEM_CAS true
-#define CUCKOO_ITEM_SIZE 64
-#define CUCKOO_NITEM 1024
+#define CUCKOO_ITEM_SIZE 4096
+#define CUCKOO_NITEM 1000000
 #define CUCKOO_POLICY CUCKOO_POLICY_RANDOM
 #define CUCKOO_MAX_TTL (30 * 24 * 60 * 60) /* 30 days */
-#define CUCKOO_DATAPOOL NULL
+#define CUCKOO_DATAPOOL "/mnt/pmem_emul/cuckoo_datapool.pelikan"
 #define CUCKOO_DATAPOOL_NAME "cuckoo_datapool"
 #define CUCKOO_PREFAULT false
 

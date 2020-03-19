@@ -285,7 +285,9 @@ cuckoo_setup(cuckoo_options_st *options, cuckoo_metrics_st *metrics)
         max_ttl = option_uint(&options->cuckoo_max_ttl);
     }
 
+    printf("%s: item_size = %lu. man_nitem = %lu.\n", __func__, item_size, max_nitem);
     hash_size = item_size * max_nitem;
+    printf("%s: opening datapool here, with path = %s\n", __func__, option_str(&options->cuckoo_datapool));
     pool = datapool_open(option_str(&options->cuckoo_datapool),
         option_str(&options->cuckoo_datapool_name), hash_size,
         NULL, option_bool(&options->cuckoo_datapool_prefault));

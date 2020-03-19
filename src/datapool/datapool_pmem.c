@@ -166,6 +166,7 @@ struct datapool *
 datapool_open(const char *path, const char *user_signature, size_t size, int *fresh, bool prefault)
 {
     struct datapool *pool = cc_alloc(sizeof(*pool));
+    printf("%s: in datapool_open start\n", __func__);
     if (pool == NULL) {
         log_error("unable to create allocate memory for pmem mapping");
         goto err_alloc;
@@ -191,6 +192,7 @@ datapool_open(const char *path, const char *user_signature, size_t size, int *fr
     } else {
         pool->addr = pmem_map_file(path, map_size, PMEM_FILE_CREATE, 0600,
             &pool->mapped_len, &pool->is_pmem);
+	printf("%s: called pmem_map_file with path = %s. map_size = %lu. PMEM_FILE_CREATE = %d. mapped->len = %lu. is_pmem = %d\n", __func__, path, map_size, PMEM_FILE_CREATE, &pool->mapped_len, &pool->is_pmem);
         pool->file_backed = 1;
     }
 

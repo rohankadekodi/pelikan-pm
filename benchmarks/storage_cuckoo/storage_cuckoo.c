@@ -15,6 +15,7 @@ void
 bench_storage_config_init(void *options)
 {
     cuckoo_options_st *opts = options;
+    printf("%s: setting the pmem file name in options\n", __func__);
     *opts = (cuckoo_options_st){ CUCKOO_OPTION(OPTION_INIT) };
 
     option_load_default(options, OPTION_CARDINALITY(cuckoo_options_st));
@@ -28,6 +29,7 @@ bench_storage_init(void *opts, size_t item_size, size_t nentries)
     options->cuckoo_item_size.val.vuint = item_size + ITEM_OVERHEAD;
     options->cuckoo_nitem.val.vuint = nentries;
 
+    printf("%s: calling cuckoo setup to map the file\n", __func__);
     cuckoo_setup(options, &metrics);
 
     return CC_OK;
